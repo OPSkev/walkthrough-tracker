@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Job {
+  id        String   @id @default(cuid())
+  woNumber  String
+  jobName   String
+  phase     Int      @default(1)
+  status    String   @default("active") // active | completed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  checklistItems ChecklistItem[]
+  punchListItems PunchListItem[]
+  signoff        Signoff?
+  photos         Photo[]
+}
+
+model ChecklistItem {
+  id       String @id @default(cuid())
+  jobId    String
+  category String
+  item     String
+  result   String @default("pending") // pending | pass | fail | na
+  notes    String @default("")
+  sortOrder Int   @default(0)
+
+  job    Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  photos Photo[]
+}
+
+model PunchListItem {
+  id             String   @id @default(cuid())
+  jobId          String
+  description    String
+  location       String   @default("")
+  resolutionType String   @default("")
+  status         String   @default("open") // open | in_progress | complete
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  job    Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  photos Photo[]
+}
+
+model Signoff {
+  id              String   @id @default(cuid())
+  jobId           String   @unique
+  clientConcerns  String   @default("")
+  signatureData   String?  // base64 PNG
+  pmApproval      Boolean  @default(false)
+  pmName          String   @default("")
+  createdAt       DateTime @default(now())
+
+  job    Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  photos Photo[]
+}
+
+model Photo {
+  id              String   @id @default(cuid())
+  filename        String
+  phase           Int
+  jobId           String
+  checklistItemId String?
+  punchListItemId String?
+  signoffId       String?
+  createdAt       DateTime @default(now())
+
+  job           Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  checklistItem ChecklistItem? @relation(fields: [checklistItemId], references: [id])
+  punchListItem PunchListItem? @relation(fields: [punchListItemId], references: [id])
+  signoff       Signoff?       @relation(fields: [signoffId], references: [id])
+}
